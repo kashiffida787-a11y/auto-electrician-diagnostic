@@ -35,11 +35,13 @@ if api_key:
         else:
             with st.spinner("تجزیہ کیا جا رہا ہے... براہ کرم انتظار کریں۔"):
                 try:
-                    # خودکار ماڈل سلیکشن (Auto-detect active model)
-                    models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-                    selected_model = models[0] if models else "models/gemini-1.5-flash"
+                    # ایکٹیو Flash ماڈل خودکار طریقے سے منتخب کریں
+                    all_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+                    flash_models = [m for m in all_models if 'flash' in m]
                     
-                    model = genai.GenerativeModel(selected_model)
+                    target_model = flash_models[0] if flash_models else "models/gemini-3.6-flash"
+                    
+                    model = genai.GenerativeModel(target_model)
                     system_prompt = "آپ ایک ماہر اٹو الیکٹریشن (Auto Electrician) ہیں۔ گاڑی کے الیکٹریکل یا مکینیکل مسئلے کو سمجھ کر آسان اور جامع اردو میں تفصیل، ممکنہ وجوہات اور حل تجویز کریں۔\n\n"
                     
                     if audio_value:
