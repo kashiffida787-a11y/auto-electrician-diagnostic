@@ -1,25 +1,58 @@
-import google.generativeai as genai
 import streamlit as st
+import google.generativeai as genai
 
 st.set_page_config(page_title="Auto Electrician Diagnostic", page_icon="🚗")
 
 st.title("🚗 Auto Electrician Diagnostic")
-st.write("گاڑی کا الیکٹریکل مسئلہ درج کریں اور حل تجویز کروائیں۔")
+st.subheader("گاڑی کا الیکٹریکل مسئلہ درج کریں یا بول کر بتائیں اور حل تجویز کروائیں")
 
-api_key = st.text_input("اپنی Gemini API Key درج کریں:", type="password")
+# API Key Input
+api_key = st.text_input("درج کریں Gemini API Key:", type="password")
 
 if api_key:
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    
+    tab1, tab2 = st.tabs(["📝 لکھ کر بتائیں (Text)", "🎤 بول کر بتائیں (Voice Input)"])
+    
+    user_query = ""
+    audio_value = None
+    
+    with tab1:
+        text_input = st.text_area("مسئلے کی تفصیل درج کریں:", height=150, placeholder="مثلاً: گاڑی کا سیلف سٹارٹ نہیں ہو رہا یا ہائبرڈ بیٹری وارننگ لائٹ آن ہے...")
+        if text_input:
+            user_query = text_input
 
-    user_query = st.text_area("مسئلے کی تفصیل لکھیں:")
+    with tab2:
+        st.info("مائیک کے بٹن پر کلک کر کے بولیں اور ریکارڈنگ مکمل ہونے پر دوبارہ کلک کریں۔")
+        audio_value = st.audio_input("یہاں آواز ریکارڈ کریں:")
+        if audio_value:
+            st.audio(audio_value)
+            st.success("آواز موصول ہو گئی ہے!")
 
     if st.button("ڈائیگنوز کریں"):
-        if user_query:
-            with st.spinner("تجزیہ کیا جا رہا ہے..."):
-                prompt = f"You are an expert auto electrician. Diagnose and suggest solutions in clear Urdu language for: {user_query}"
-                response = model.generate_content(prompt)
-                st.write("### تجویز کردہ حل:")
-                st.write(response.text)
+        if not user_query and not audio_value:
+            st.warning("براہ کرم مسئلہ ٹائپ کریں یا آواز ریکارڈ کریں۔")
         else:
-            st.warning("براہ کرم پہلے اپنا مسئلہ درج کریں۔")
+            with st.spinner("تجزیہ کیا جا رہا ہے... براہ کرم انتظار کریں۔"):
+                try:
+                    model = genai.GenerativeModel("gemini-2.5-flash")
+                    system_prompt = "آپ ایک ماہر اٹو الیکٹریشن (Auto Electrician) ہیں۔ گاڑی کے الیکٹریکل یا مکینیکل مسئلے کو سمجھ کر آسان اور جامع اردو میں تفصیل، ممکنہ وجوہات اور حل تجویز کریں۔\n\n"
+                    
+                    if audio_value:
+                        audio_bytes = audio_value.read()
+                        audio_part = {
+                            "mime_type": audio_value.type,
+                            "data": audio_bytes
+                        }
+                        prompt = system_prompt + "برائے مہربانی اس آڈیو ریکارڈنگ میں گاڑی کے مسئلے کا جائزہ لے کر اردو میں حل بتائیں۔"
+                        response = model.generate_content([prompt, audio_part])
+                    else:
+                        prompt = system_prompt + f"گاڑی کا مسئلہ: {user_query}"
+                        response = model.generate_content(prompt)
+                    
+                    st.success("ڈائیگنوسس کی تفصیلات:")
+                    st.markdown(response.text)
+                except Exception as e:
+                    st.error(f"کوئی غلطی پیش آئی ہے: {e}")
+else:
+    st.info("ایپ استعمال کرنے کے لیے اوپر اپنی Gemini API Key درج کریں۔")
