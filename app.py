@@ -1,6 +1,5 @@
 import streamlit as st
-from google import genai
-from google.genai import types
+import google.generativeai as genai
 
 st.set_page_config(page_title="Auto Electrician Diagnostic", page_icon="🚗")
 
@@ -11,7 +10,7 @@ st.subheader("گاڑی کا الیکٹریکل مسئلہ درج کریں یا �
 api_key = st.text_input("درج کریں Gemini API Key:", type="password")
 
 if api_key:
-    client = genai.Client(api_key=api_key)
+    genai.configure(api_key=api_key)
     
     tab1, tab2 = st.tabs(["📝 لکھ کر بتائیں (Text)", "🎤 بول کر بتائیں (Voice Input)"])
     
@@ -36,25 +35,20 @@ if api_key:
         else:
             with st.spinner("تجزیہ کیا جا رہا ہے... براہ کرم انتظار کریں۔"):
                 try:
+                    model = genai.GenerativeModel("models/gemini-3.6-flash")
                     system_prompt = "آپ ایک ماہر اٹو الیکٹریشن (Auto Electrician) ہیں۔ گاڑی کے الیکٹریکل یا مکینیکل مسئلے کو سمجھ کر آسان اور جامع اردو میں تفصیل، ممکنہ وجوہات اور حل تجویز کریں۔\n\n"
                     
                     if audio_value:
                         audio_bytes = audio_value.read()
-                        audio_part = types.Part.from_bytes(
-                            data=audio_bytes,
-                            mime_type=audio_value.type,
-                        )
+                        audio_part = {
+                            "mime_type": audio_value.type,
+                            "data": audio_bytes
+                        }
                         prompt = system_prompt + "برائے مہربانی اس آڈیو ریکارڈنگ میں گاڑی کے مسئلے کا جائزہ لے کر اردو میں حل بتائیں۔"
-                        response = client.models.generate_content(
-                            model='gemini-2.5-flash',
-                            contents=[prompt, audio_part]
-                        )
+                        response = model.generate_content([prompt, audio_part])
                     else:
                         prompt = system_prompt + f"گاڑی کا مسئلہ: {user_query}"
-                        response = client.models.generate_content(
-                            model='gemini-2.5-flash',
-                            contents=prompt
-                        )
+                        response = model.generate_content(prompt)
                     
                     st.success("ڈائیگنوسس کی تفصیلات:")
                     st.markdown(response.text)
