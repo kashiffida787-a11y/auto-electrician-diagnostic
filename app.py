@@ -35,7 +35,11 @@ if api_key:
         else:
             with st.spinner("تجزیہ کیا جا رہا ہے... براہ کرم انتظار کریں۔"):
                 try:
-                    model = genai.GenerativeModel("gemini-1.5-flash")
+                    # Available models check
+                    available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+                    model_name = "gemini-1.5-flash-latest" if "models/gemini-1.5-flash-latest" in available_models else available_models[0]
+                    
+                    model = genai.GenerativeModel(model_name)
                     system_prompt = "آپ ایک ماہر اٹو الیکٹریشن (Auto Electrician) ہیں۔ گاڑی کے الیکٹریکل یا مکینیکل مسئلے کو سمجھ کر آسان اور جامع اردو میں تفصیل، ممکنہ وجوہات اور حل تجویز کریں۔\n\n"
                     
                     if audio_value:
